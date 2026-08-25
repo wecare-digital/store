@@ -22,7 +22,6 @@ const SITE = {
   address: { streetAddress: 'The W.B.S.I.D.C. Building, Unit 1/20, 81/2/7, Phears Lane', city: 'Kolkata', state: 'West Bengal', pincode: '700012', country: 'IN' },
   instagram: 'https://www.instagram.com/wecare.digital/',
   brands: [
-    { name: 'BNB Club', category: 'Travel', path: '/bnb' },
     { name: 'Legal Champ', category: 'Legal Services', path: '/legal-champ' },
     { name: 'Ritual Guru', category: 'Spiritual/Cultural', path: '/ritual' },
     { name: 'Swdhya', category: 'Personal Growth', path: '/swdhya' },

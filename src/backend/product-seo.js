@@ -27,7 +27,6 @@ const LOGO = 'https://app.wecare.digital/stream/media/m/wecare-digital.png';
  * worse than no breadcrumb, so route to the brand's actual store page.
  */
 const STORE_PAGES = [
-  { match: /bnb/i, name: 'BNB Club Store', path: '/bnb-store' },
   { match: /legal\s*champ/i, name: 'Legal Champ Store', path: '/legalchamp-store' },
   { match: /ritual/i, name: 'Ritual Guru Store', path: '/ritual-store' },
   { match: /swdhya/i, name: 'Swdhya Store', path: '/swdhya-store' },
@@ -78,7 +77,7 @@ const COPY = {
   },
   'partner-up': {
     title: 'Partner Up — Earn on 4,000+ SKUs | WECARE.DIGITAL',
-    description: 'Activate once and earn on every valid order across 4,000+ SKUs from BNB Club, Legal Champ, Ritual Guru, Swdhya, No Fault and more. No renewals.',
+    description: 'Activate once and earn on every valid order across 4,000+ SKUs from Legal Champ, Ritual Guru, Swdhya, No Fault and more. No renewals.',
   },
 };
 

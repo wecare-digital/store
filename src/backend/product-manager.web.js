@@ -20,13 +20,6 @@ import wixStoresBackend from 'wix-stores-backend';
 import { getProductWithVariants, updateProduct as v3UpdateProduct } from 'backend/catalog-v3.js';
 
 // ---------------------------------------------------------------------------
-// BNB CLUB sample product templates — REMOVED (were never real products)
-// These were placeholder templates. Real products are managed in Wix Dashboard.
-// ---------------------------------------------------------------------------
-
-const BNB_SAMPLE_PRODUCTS = [];
-
-// ---------------------------------------------------------------------------
 // createProduct — create a single product
 // ---------------------------------------------------------------------------
 
@@ -136,8 +129,8 @@ export const getSampleProducts = webMethod(
   async () => {
     return {
       success: true,
-      products: BNB_SAMPLE_PRODUCTS,
-      count: BNB_SAMPLE_PRODUCTS.length,
+      products: [],
+      count: 0,
     };
   }
 );

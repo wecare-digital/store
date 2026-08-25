@@ -194,22 +194,6 @@ export var seoMap = {
   },
 
   // ── BRAND HUB PAGES ──
-  '/bnb': {
-    title: 'BNB Club: Travel Stays & Experiences | ' + BRAND,
-    description: 'Book travel stays and curated experiences across India with BNB Club by ' + BRAND + '. Transparent pricing, easy booking.',
-    robots: 'index, follow',
-    canonical: BASE + '/bnb',
-    ogTitle: 'BNB Club: Travel Stays & Experiences',
-    ogDescription: 'Book travel stays and curated experiences across India with BNB Club.',
-    ogImage: LOGO,
-    twitterTitle: 'BNB Club | ' + BRAND,
-    twitterDescription: 'Travel stays and curated experiences across India.',
-    structuredData: [
-      webPage('BNB Club: Travel Stays & Experiences', 'Book travel stays and curated experiences across India with BNB Club.', BASE + '/bnb'),
-      bc1('BNB Club', '/bnb'),
-    ],
-  },
-
   '/legal-champ': {
     title: 'Legal Champ: Document & Paralegal Services | ' + BRAND,
     description: 'Professional legal document preparation and paralegal workflows. Fast, affordable legal support for everyday Bharat.',
@@ -291,20 +275,6 @@ export var seoMap = {
   },
 
   // ── BRAND STORE PAGES ──
-  '/bnb-store': {
-    title: 'BNB Club Store | ' + BRAND,
-    description: 'Browse and shop BNB Club travel packages and curated experiences.',
-    robots: 'index, follow',
-    canonical: BASE + '/bnb-store',
-    ogTitle: 'BNB Club Store',
-    ogDescription: 'Shop BNB Club travel packages and curated experiences.',
-    ogImage: LOGO,
-    structuredData: [
-      webPage('BNB Club Store', 'Browse BNB Club travel packages.', BASE + '/bnb-store'),
-      bc2('BNB Club', '/bnb', 'Store', '/bnb-store'),
-    ],
-  },
-
   '/legalchamp-store': {
     title: 'Legal Champ Store | ' + BRAND,
     description: 'Browse Legal Champ service packages for document preparation and paralegal support.',

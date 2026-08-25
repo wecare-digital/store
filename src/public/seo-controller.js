@@ -27,7 +27,7 @@ const BASE = 'https://www.wecare.digital';
  * Normalize wix-location-frontend.path (array) to a string path.
  * Examples:
  *   [] → '/'
- *   ['bnb'] → '/bnb'
+ *   ['ritual'] → '/ritual'
  *   ['account', 'my-orders'] → '/account/my-orders'
  *   ['post', 'some-slug'] → '/post/some-slug'
  */
