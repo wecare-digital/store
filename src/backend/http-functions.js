@@ -516,7 +516,7 @@ async function getWixKey ()
   }
   return _wixKeyCache;
 }
-const WIX_SITE = 'd3ed75eb-e0b7-45c2-a743-f83cfa19379a';
+const WIX_SITE = 'c17b0e20-d96d-4fa1-b05c-bc97c04b4ac5';
 
 async function wixApi ( method, path, body )
 {
