@@ -1,6 +1,7 @@
 import { initHygiene } from 'public/site-hygiene.js';
 import { initButtonNormalize } from 'public/button-normalize.js';
 import { applySeo } from 'public/seo-controller.js';
+import { initLanguage } from 'public/wecare-language.js';
 import wixLocationFrontend from 'wix-location-frontend';
 import { currentMember } from 'wix-members-frontend';
 import { getMyOrderIdList } from 'backend/member-orders.web.js';
@@ -8,6 +9,12 @@ import { getMyOrderIdList } from 'backend/member-orders.web.js';
 $w.onReady(function () {
   initHygiene({ useCanonicalize: true, defaultAlt: 'WECARE.DIGITAL' });
   initButtonNormalize();
+
+  // Read-aloud + on-page translation. Self-disables when the language relay
+  // cannot serve this origin or the capability it needs, so it never renders a
+  // dead control. Wrapped because everything below (SEO, order forms) must
+  // still run if the widget throws.
+  try { initLanguage(); } catch (e) { console.warn('[lang] init skipped', e); }
 
   // ── Global SEO Controller ──
   // Applies runtime SEO overrides for all static + system pages.
