@@ -1,0 +1,103 @@
+name: Retire backend SEO writers
+
+on:
+  push:
+    branches:
+      - deep-fresh-resolve-2026-09-04
+    paths:
+      - .github/workflows/retire-backend-seo.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: deep-fresh-resolve-2026-09-04
+          fetch-depth: 0
+
+      - name: Patch SEO-only backend sections
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('src/backend/http-functions.js')
+          text = path.read_text()
+
+          def cut_between(src, start, end):
+              if src.count(start) != 1:
+                  raise SystemExit(f'expected exactly one start sentinel: {start!r}')
+              i = src.index(start)
+              j = src.index(end, i)
+              return src[:i] + src[j:]
+
+          text = text.replace("import { seoMap, defaultSeo } from 'public/seo-map.js';\n", '')
+          text = text.replace("import { applyProductSeo, buildProductSeo } from 'backend/product-seo.js';\n", '')
+
+          text = cut_between(
+              text,
+              '// SEO head (read-only): returns the SEO config the live controller applies for a path.',
+              'export async function get_sampleProducts'
+          )
+          text = cut_between(text, '// ── Blog SEO Bulk ──', '// ── Info endpoints ──')
+          text = cut_between(text, 'export async function get_canonicalize', '// ── RSS ──')
+          text = cut_between(text, '// ── Diagnostic ──', 'export async function get_stats')
+
+          text = text.replace("{ name: 'Legal Champ', category: 'Legal Services', path: '/legal-champ' }", "{ name: 'Dastavez', category: 'Legal Services', path: '/dastavez' }")
+          text = text.replace("{ name: 'No Fault', category: 'Dispute Resolution', path: '/no-fault' }", "{ name: 'ClearClosure', category: 'Dispute Resolution', path: '/clear-closure' }")
+          expo = "    { name: 'Expo Week', category: 'Events', path: '/expoweek' },\n    { name: 'Bharat Stack', category: 'Technology Platform', url: 'https://stack.wecare.digital' },"
+          replacement = "    { name: 'Expo Week', category: 'Events', path: '/expoweek' },\n    { name: 'Elsewhere', category: 'Travel', path: '/elsewhere' },\n    { name: 'Bharat Stack', category: 'Technology Platform', url: 'https://stack.wecare.digital' },"
+          if expo not in text:
+              raise SystemExit('brand insertion sentinel not found')
+          text = text.replace(expo, replacement, 1)
+
+          text = text.replace('/pages-sitemap.xml', '/sitemap.xml')
+          text = text.replace("sitemaps: [ BASE + '/sitemap.xml', BASE + '/store-products-sitemap.xml', BASE + '/blog-posts-sitemap.xml' ]", "sitemaps: [ BASE + '/sitemap.xml' ]")
+          text = text.replace(", schemaBlog: '/_functions/schemablog', schemaProduct: '/_functions/schemaproduct'", '')
+          text = text.replace("pages: ALL_PAGES.map( p => ( { url: p, fullUrl: BASE + p } ) ), ", '')
+          text = text.replace("    schema: {\n      blog: BASE + '/_functions/schemablog?slug={slug}',\n      product: BASE + '/_functions/schemaproduct?id={id}',\n    },\n", '')
+
+          banned = [
+              'seo-map', 'product-seo', 'applyProductSeo', 'buildProductSeo',
+              'get_seohead', 'get_blogseobulk', 'get_blogseoclear', 'get_blogseoapply',
+              'get_productseo', 'get_schemablog', 'get_schemaproduct',
+              'get_robots (', 'get_sitemap (', 'get_smindex (', 'get_smtxt (',
+              'ALL_PAGES', '/pages-sitemap.xml', '/store-products-sitemap.xml', '/blog-posts-sitemap.xml',
+              '/_functions/schemablog', '/_functions/schemaproduct',
+              'Legal Champ', 'No Fault', '/legal-champ', '/no-fault'
+          ]
+          leftovers = [token for token in banned if token in text]
+          if leftovers:
+              raise SystemExit('retired SEO/brand tokens remain: ' + ', '.join(leftovers))
+          for required in ['get_products (', 'get_orders (', 'Dastavez', 'ClearClosure', 'Elsewhere', '/sitemap.xml']:
+              if required not in text:
+                  raise SystemExit('required preserved/replacement token missing: ' + required)
+
+          path.write_text(text)
+          PY
+
+          git rm src/public/seo-map.js src/backend/product-seo.js
+
+      - name: Run focused retirement tests
+        run: |
+          node tests/blog-search-url.test.mjs
+          node tests/runtime-seo-retirement.test.mjs
+          node tests/seo-automation-retirement.test.mjs
+          node tests/backend-seo-writers-retirement.test.mjs
+          test ! -e src/public/seo-controller.js
+          test ! -e src/public/seo-map.js
+          test ! -e src/backend/product-seo.js
+          test ! -e src/backend/seo-sweep.js
+
+      - name: Commit verified patch
+        run: |
+          git config user.name "WECARE.DIGITAL Release Bot"
+          git config user.email "deploy@wecare.digital"
+          git add src/backend/http-functions.js src/public/seo-map.js src/backend/product-seo.js
+          git diff --cached --check
+          git commit -m "refactor(seo): retire backend SEO writers"
+          git push origin HEAD:deep-fresh-resolve-2026-09-04
