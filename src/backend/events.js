@@ -1,196 +1,10 @@
-/**
- * Wix Velo Backend Events
- * 
- * Auto-triggers when blog posts are published or updated.
- * 
- * NEW FLOW (AI SEO Autopilot):
- * 1. Author publishes a blog post in Wix Dashboard
- * 2. Wix fires onPostPublished event
- * 3. This handler calls stack.wecare.digital/api/seo-tools/ai-seo-audit
- * 4. AI (Claude Opus 4.7 via Bedrock) generates full SEO audit
- * 5. Result saved as "pending_review" in SEO dashboard
- * 6. Admin reviews and approves in dashboard
- * 7. On approval, SEO data is pushed back to the blog post
- * 
- * OLD FLOW (kept as fallback):
- * - Calls blog-seo-webhook for basic SEO push (no AI)
- * - Used when AI audit endpoint is unavailable
- * 
- * For OLD posts: trigger manually from dashboard by slug or batch.
- */
-
 import { getSecret } from 'wix-secrets-backend';
-
-const SITE_BASE = 'https://www.wecare.digital';
-// AI SEO Audit endpoint (new — Claude Opus 4.7)
-const AI_AUDIT_URL = 'https://stack.wecare.digital/api/seo-tools/ai-seo-audit';
-// Legacy webhook (fallback — basic SEO push without AI)
-const LEGACY_WEBHOOK_URL = 'https://stack.wecare.digital/api/seo-tools/blog-seo-webhook';
-
-let _webhookSecret;
-async function getWebhookSecret ()
-{
-  if ( _webhookSecret !== undefined ) return _webhookSecret;
-  try
-  {
-    _webhookSecret = await getSecret( 'BLOG_WEBHOOK_SECRET' );
-  } catch
-  {
-    _webhookSecret = '';
-  }
-  return _webhookSecret;
-}
-
-/**
- * Try AI audit first, fall back to legacy webhook if it fails.
- */
-async function triggerSeoAudit ( postId, slug, title )
-{
-  const secret = await getWebhookSecret();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...( secret ? { 'x-webhook-secret': secret } : {} ),
-  };
-
-  // Try AI audit endpoint first
-  try
-  {
-    const aiResponse = await fetch( AI_AUDIT_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify( { slug } ),
-    } );
-
-    const aiData = await aiResponse.json();
-
-    if ( aiData.ok )
-    {
-      console.log( `[seo-ai] ✅ AI audit created for "${ title }" (${ slug }) — score: ${ aiData.audit?.seoScoreBefore } → ${ aiData.audit?.seoScoreAfter }, cost: $${ aiData.log?.costEstimate }` );
-      console.log( `[seo-ai] Status: pending_review — admin must approve in dashboard` );
-      return { method: 'ai', success: true, data: aiData };
-    } else
-    {
-      console.log( `[seo-ai] ⚠️ AI audit returned error for "${ title }": ${ aiData.error }` );
-    }
-  } catch ( err )
-  {
-    console.log( `[seo-ai] ⚠️ AI audit endpoint unavailable: ${ err.message }` );
-  }
-
-  // Fallback to legacy webhook
-  try
-  {
-    console.log( `[seo-legacy] Falling back to legacy webhook for "${ title }"...` );
-    const legacyResponse = await fetch( LEGACY_WEBHOOK_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify( { postId, slug, title } ),
-    } );
-
-    const legacyData = await legacyResponse.json();
-
-    if ( legacyData.action === 'skipped' )
-    {
-      console.log( `[seo-legacy] Skipped "${ title }" — already has custom JSON-LD` );
-    } else if ( legacyData.action === 'pushed' )
-    {
-      console.log( `[seo-legacy] ✅ Basic SEO pushed for "${ title }" — ${ legacyData.tagCount } tags` );
-    } else
-    {
-      console.log( `[seo-legacy] Response:`, JSON.stringify( legacyData ) );
-    }
-    return { method: 'legacy', success: true, data: legacyData };
-  } catch ( err )
-  {
-    console.error( `[seo-legacy] Error: ${ err.message }` );
-  }
-
-  // Final fallback: this site's own blogseoapply endpoint.
-  //
-  // Both tiers above depend on stack.wecare.digital being reachable and on the
-  // BLOG_WEBHOOK_SECRET secret. When either is missing, a newly published post
-  // used to get no SEO at all and nothing said so. This tier has no external
-  // dependency - it runs the in-repo builder against the Blog v3 API - so a
-  // post always ends up with a title, description and BlogPosting JSON-LD.
-  try
-  {
-    console.log( `[seo-local] Applying in-repo SEO for "${ title }"...` );
-    const key = await getSecret( 'WECARE_API_KEY' ).catch( () => '' );
-    const r = await fetch(
-      SITE_BASE + '/_functions/blogseoapply?dryrun=0&slug=' + encodeURIComponent( slug ),
-      { headers: key ? { 'x-api-key': key } : {} }
-    );
-    const data = await r.json();
-    if ( data.ok )
-    {
-      console.log( `[seo-local] Applied for "${ title }" - ${ data.tagCount } tags, ${ ( data.jsonLdTypes || [] ).join( ' + ' ) }` );
-      return { method: 'local', success: true, data };
-    }
-    console.error( `[seo-local] Failed for "${ title }":`, data.error );
-    return { method: 'local', success: false, error: data.error };
-  } catch ( err )
-  {
-    console.error( `[seo-local] Error: ${ err.message }` );
-    return { method: 'none', success: false, error: err.message };
-  }
-}
-
-/**
- * Fired when a NEW blog post is published.
- */
-export async function wixBlog_onPostPublished ( event )
-{
-  try
-  {
-    const post = event.entity || event;
-    const postId = post.id || post._id || '';
-    const slug = post.slug || '';
-    const title = post.title || '';
-
-    if ( !postId && !slug )
-    {
-      console.log( '[seo-event] No postId or slug in event, skipping' );
-      return;
-    }
-
-    console.log( `[seo-event] 🆕 Post PUBLISHED: "${ title }" (${ slug })` );
-    await triggerSeoAudit( postId, slug, title );
-  } catch ( err )
-  {
-    console.error( '[seo-event] Publish error:', err.message || err );
-  }
-}
-
-/**
- * Fired when an existing blog post is updated (re-published after edit).
- * Only triggers AI audit — does NOT auto-apply. Admin must approve.
- */
-export async function wixBlog_onPostUpdated ( event )
-{
-  try
-  {
-    const post = event.entity || event;
-    const postId = post.id || post._id || '';
-    const slug = post.slug || '';
-    const title = post.title || '';
-
-    if ( !postId && !slug ) return;
-
-    console.log( `[seo-event] ✏️ Post UPDATED: "${ title }" (${ slug })` );
-    await triggerSeoAudit( postId, slug, title );
-  } catch ( err )
-  {
-    console.error( '[seo-event] Update error:', err.message || err );
-  }
-}
-
+import wixData from 'wix-data';
+import { createOrGetOrderId } from 'backend/orderId-helpers';
 
 // ══════════════════════════════════════════════════════════════
 // ORDER NOTIFICATIONS — WhatsApp + SMS on new order
 // ══════════════════════════════════════════════════════════════
-
-import wixData from 'wix-data';
-import { createOrGetOrderId } from 'backend/orderId-helpers';
 
 /**
  * Triggered when a new order is approved (paid).
@@ -242,7 +56,6 @@ export async function wixEcom_onOrderApproved ( event )
     console.error( '[events] WD order number error:', err?.message || err );
   }
 
-  // Send notifications
   var buyerPhone = buyer.phone || '';
   if ( buyerPhone )
   {
@@ -276,7 +89,6 @@ async function _sendOrderNotifications ( orderId, wdOrderId, phone, email )
     updatedAt: new Date(),
   };
 
-  // 1. WhatsApp via WABA1 (+919330994400)
   try
   {
     var waResp = await fetch( STACK_API + '/messaging/send', {
@@ -317,7 +129,6 @@ async function _sendOrderNotifications ( orderId, wdOrderId, phone, email )
     notif.whatsappError = waErr?.message || String( waErr );
   }
 
-  // 2. SMS via Airtel IQ (WDBEEP, DLT 1007723091207562020)
   try
   {
     var smsContent = 'Thanks for placing your order with WECARE.DIGITAL!\n\n'
@@ -357,7 +168,6 @@ async function _sendOrderNotifications ( orderId, wdOrderId, phone, email )
     notif.smsError = smsErr?.message || String( smsErr );
   }
 
-  // 3. RCS via Sinch (if enabled)
   try
   {
     var rcsResp = await fetch( STACK_API + '/rcs/send', {
@@ -385,7 +195,6 @@ async function _sendOrderNotifications ( orderId, wdOrderId, phone, email )
     notif.rcsStatus = 'failed';
   }
 
-  // 4. Log to OrderNotifications collection
   notif.updatedAt = new Date();
   try
   {
