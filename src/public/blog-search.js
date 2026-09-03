@@ -1,6 +1,7 @@
 import wixData from 'wix-data';
 import wixWindow from 'wix-window-frontend';
 import wixLocation from 'wix-location-frontend';
+import { resolveBlogPostUrl } from 'public/blog-search-url.js';
 
 const COLLECTION = 'Blog/Posts';
 const DEBOUNCE = 150;
@@ -21,7 +22,7 @@ function search(query, repeater, box, noText, goFirst) {
         repeater.data = results;
         noText.hide();
         if (box.collapsed) { box.expand(); if (isMobile) box.scrollTo().catch(() => {}); }
-        if (goFirst) { const url = results[0].postPageUrl || results[0].postPageURL; if (url) { $w('#searchInput').value = results[0].title; wixLocation.to(url); } }
+        if (goFirst) { const url = resolveBlogPostUrl(results[0]); if (url) { $w('#searchInput').value = results[0].title; wixLocation.to(url); } }
       } else {
         repeater.data = [];
         if (query) { noText.show(); box.expand(); } else { noText.hide(); box.collapse(); }
@@ -40,7 +41,7 @@ export function initBlogSearch() {
     const t = data.title || '';
     try { $item('#resultTitle').html = linkHtml(t); } catch (_) { $item('#resultTitle').text = t; }
     if (isMobile) try { $item('#rowBox').height = Math.max($item('#rowBox').height, 48); } catch (_) {}
-    const go = () => { const url = data.postPageUrl || data.postPageURL; if (url) { input.value = t; wixLocation.to(url); } };
+    const go = () => { const url = resolveBlogPostUrl(data); if (url) { input.value = t; wixLocation.to(url); } };
     $item('#resultTitle').onClick(go);
     $item('#rowBox').onClick(go);
   });
@@ -56,7 +57,7 @@ export function initBlogSearch() {
     if (e.key === 'Enter') {
       const q = input.value.trim();
       if (!q) return;
-      if (results.length && q === lastQ) { const url = results[0].postPageUrl || results[0].postPageURL; if (url) { input.value = results[0].title; wixLocation.to(url); } }
+      if (results.length && q === lastQ) { const url = resolveBlogPostUrl(results[0]); if (url) { input.value = results[0].title; wixLocation.to(url); } }
       else search(q, rep, box, noText, true);
     }
   });
