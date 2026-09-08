@@ -46,9 +46,11 @@ test('dashboard API exposes every live admin action and keeps SKU writes dry-run
     assert.match(apiSource, new RegExp(`case ['\"]${action}['\"]`));
   }
   assert.match(apiSource, /dryRun\s*=\s*dryRun\s*!==\s*false/);
-  assert.match(apiSource, /WHATSAPP_ACCESS_TOKEN/);
-  assert.match(apiSource, /WHATSAPP_PHONE_NUMBER_ID/);
-  assert.match(apiSource, /WHATSAPP_WABA_ID/);
+});
+
+test('dashboard WhatsApp status comes from the authoritative notification adapter', () => {
+  assert.match(apiSource, /getWhatsAppOrderNotificationStatus/);
+  assert.doesNotMatch(apiSource, /async function whatsAppStatus\(/);
 });
 
 test('dashboard renders refreshable live data for invoices, payment links, and forms', () => {
