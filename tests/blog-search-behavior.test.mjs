@@ -180,3 +180,16 @@ test('mobile results preserve touch-row sizing and scroll into view', async () =
   assert.equal(f.rows.get('resentment-id').row.height, 48);
   assert.equal(f.box.scrolls, 1);
 });
+
+test('keeps previous results visible while a new typed query is waiting', async () => {
+  const f = fixture(); f.init();
+  f.type('Resentment'); f.runTimers(); await f.resolve(0, [resentment]);
+  f.type('Flame');
+  assert.equal(f.rep.data[0]?.title, 'Resentment');
+  f.runTimers(); await f.resolve(1, [flame]);
+  assert.equal(f.rep.data[0]?.title, 'Flame');
+});
+
+test('uses a near-immediate 50 ms typing debounce', () => {
+  assert.match(source, /const DEBOUNCE = 50;/);
+});
