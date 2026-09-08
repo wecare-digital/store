@@ -24,6 +24,7 @@ test('live custom modules expose only approved customer runtime and private WECA
     'backend/sku-batch.web.js',
     'backend/wecare-dashboard-api.js',
     'backend/wecare-dashboard-core.js',
+    'backend/whatsapp-order-notifications.js',
     'public/blog-search-url.js',
     'public/blog-search.js',
   ]);
