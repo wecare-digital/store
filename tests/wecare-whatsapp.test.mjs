@@ -6,7 +6,8 @@ const helper = readFileSync(new URL('../src/backend/whatsapp-order-notifications
 const events = readFileSync(new URL('../src/backend/events.js', import.meta.url), 'utf8');
 
 test('WhatsApp integration is server-only and uses the current Meta Graph API message endpoint', () => {
-  assert.match(helper, /graph\.facebook\.com\/v26\.0/);
+  assert.match(helper, /const GRAPH_VERSION = 'v26\.0'/);
+  assert.match(helper, /https:\/\/graph\.facebook\.com\/\$\{GRAPH_VERSION\}/);
   assert.match(helper, /\/messages/);
   assert.match(helper, /WHATSAPP_ACCESS_TOKEN/);
   assert.match(helper, /WHATSAPP_PHONE_NUMBER_ID/);
