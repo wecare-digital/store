@@ -1,0 +1,20 @@
+{
+  "collection": {
+    "id": "OrderIds",
+    "displayName": "Customer Order IDs",
+    "displayField": "customOrderId",
+    "fields": [
+      { "key": "customOrderId", "displayName": "Custom Order ID", "type": "TEXT", "required": true, "immutable": true },
+      { "key": "wixOrderId", "displayName": "Wix Order ID", "type": "TEXT", "required": true, "immutable": true },
+      { "key": "orderId", "displayName": "Legacy Order ID", "type": "TEXT", "immutable": true },
+      { "key": "wixOrderNumber", "displayName": "Wix Order Number", "type": "TEXT", "immutable": true },
+      { "key": "orderCreatedDate", "displayName": "Order Created Date", "type": "DATETIME", "immutable": true },
+      { "key": "source", "displayName": "Source", "type": "TEXT", "immutable": true },
+      { "key": "memberId", "displayName": "Member ID", "type": "TEXT" },
+      { "key": "productsSummary", "displayName": "Products Summary", "type": "TEXT" },
+      { "key": "totalAmount", "displayName": "Total Amount", "type": "TEXT" },
+      { "key": "currency", "displayName": "Currency", "type": "TEXT" }
+    ],
+    "permissions": { "insert": "ADMIN", "update": "ADMIN", "remove": "ADMIN", "read": "ADMIN" }
+  }
+}
