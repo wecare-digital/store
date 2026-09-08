@@ -9,6 +9,7 @@ const READ_OPTIONS = { suppressAuth: true, suppressHooks: true, consistentRead: 
 const WHATSAPP_ACCESS_TOKEN = 'WHATSAPP_ACCESS_TOKEN';
 const WHATSAPP_PHONE_NUMBER_ID = 'WHATSAPP_PHONE_NUMBER_ID';
 const WHATSAPP_WABA_ID = 'WHATSAPP_WABA_ID';
+const META_APP_ID = '2238810740192680';
 
 async function siteApi(method, path, body) {
   const key = await getSecret('api');
@@ -117,7 +118,7 @@ async function reprefixSkus({ oldPrefix = '', newPrefix = 'WD', dryRun = true } 
 async function whatsAppStatus() {
   const names = [WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_WABA_ID];
   const values = await Promise.all(names.map(async name => { try { return Boolean(await getSecret(name)); } catch { return false; } }));
-  return { connected: values.every(Boolean), accessToken: values[0], phoneNumberId: values[1], wabaId: values[2] };
+  return { connected: values.every(Boolean), accessToken: values[0], phoneNumberId: values[1], wabaId: values[2], metaAppId: META_APP_ID };
 }
 
 async function listOrders() {
@@ -144,6 +145,44 @@ async function listOrderIds() {
   }));
 }
 
+async function listInvoices() {
+  const data = await siteApi('POST', '/invoices/v4/invoices/query', { query: { cursorPaging: { limit: 25 } } });
+  return (data.invoices || []).map(invoice => ({
+    id: invoice.id || '',
+    number: invoice.numbering?.displayNumber || '',
+    title: invoice.title || '',
+    status: invoice.status || '',
+    createdDate: invoice.createdDate || '',
+    dueDate: invoice.dueDate || '',
+    total: invoice.totals?.total?.formattedAmount || invoice.totals?.total?.amount || ''
+  }));
+}
+
+async function listPaymentLinks() {
+  const data = await siteApi('POST', '/payment-links/v1/payment-links/query', { query: { cursorPaging: { limit: 25 } } });
+  return (data.paymentLinks || []).map(link => ({
+    id: link.id || '',
+    title: link.title || '',
+    status: link.status || '',
+    type: link.type || '',
+    currency: link.currency || '',
+    createdDate: link.createdDate || '',
+    url: link.links?.url || link.links?.paymentLink || link.links?.checkoutUrl || ''
+  }));
+}
+
+async function listForms() {
+  const data = await siteApi('GET', '/form-schema-service/v4/forms?namespace=wix.form_app.form&order=UPDATED_DATE_DESC&fieldsets=METADATA');
+  return (data.forms || []).map(form => ({
+    id: form.id || '',
+    name: form.name || '',
+    enabled: form.enabled !== false,
+    createdDate: form.createdDate || '',
+    updatedDate: form.updatedDate || '',
+    namespace: form.namespace || ''
+  }));
+}
+
 async function seoStatus() {
   const [patterns, siteTags] = await Promise.all([
     siteApi('GET', '/promote/seo/v1/seo-patterns'),
@@ -167,6 +206,9 @@ export async function runWeCareAction(input = {}) {
     case 'orderIds': return { items: await listOrderIds() };
     case 'skuMissing': return assignMissingSkus({ prefix: input.prefix, dryRun: input.dryRun });
     case 'skuReprefix': return reprefixSkus({ oldPrefix: input.oldPrefix, newPrefix: input.newPrefix, dryRun: input.dryRun });
+    case 'invoices': return { invoices: await listInvoices() };
+    case 'paymentLinks': return { paymentLinks: await listPaymentLinks() };
+    case 'forms': return { forms: await listForms() };
     case 'seoStatus': return seoStatus();
     case 'automations': return automationsStatus();
     default: throw new Error('Unknown WECARE action.');
