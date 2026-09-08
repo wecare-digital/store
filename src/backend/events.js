@@ -32,8 +32,8 @@ export async function wixEcom_onOrderApproved(event) {
   return orderIdRecord;
 }
 
-/** Send a WhatsApp utility update only for successful/partial payment states. */
-export async function wixEcom_onPaymentStatusUpdated(event) {
+/** Wix eCommerce Order Payment Status Updated → WhatsApp payment utility template. */
+export async function wixEcom_onOrderPaymentStatusUpdated(event) {
   const order = eventOrder(event);
   const status = String(order?.paymentStatus || event?.data?.paymentStatus || '').toUpperCase();
   if (!['PAID', 'PARTIALLY_PAID'].includes(status)) return { sent: false, reason: 'payment-status-not-notifiable' };
