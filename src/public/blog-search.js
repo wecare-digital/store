@@ -1,9 +1,8 @@
-import wixData from 'wix-data';
+import wixSearch from 'wix-search';
 import wixWindow from 'wix-window-frontend';
 import wixLocation from 'wix-location-frontend';
 import { resolveBlogPostUrl } from 'public/blog-search-url.js';
 
-const COLLECTION = 'Blog/Posts';
 const DEBOUNCE = 150;
 
 let timer = null, lastQ = '', isMobile = false, results = [];
@@ -14,10 +13,10 @@ function linkHtml(label) { return '<p style="margin:0"><span style="font-family:
 function search(query, repeater, box, noText, goFirst) {
   lastQ = query;
   const limit = isMobile ? 6 : 10;
-  wixData.query(COLLECTION).contains('title', query).ascending('title').limit(limit).find()
+  wixSearch.search(query).documentType('Blog/Posts').limit(limit).find()
     .then(r => {
       if (query !== lastQ) return;
-      results = r.items || [];
+      results = r.documents || [];
       if (results.length) {
         repeater.data = results;
         noText.hide();
