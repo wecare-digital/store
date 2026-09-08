@@ -11,14 +11,19 @@ function files(dir) {
   });
 }
 
-test('live custom modules expose only approved order-ID and Blog-search subsystems', () => {
+test('live custom modules expose only approved customer runtime and private WECARE admin gateway subsystems', () => {
   const actual = files(root).filter(path => path.endsWith('.js') && !path.includes('/pages/'))
     .map(path => relative(root, path)).sort();
   assert.deepEqual(actual, [
+    'backend/catalog-v3.js',
     'backend/events.js',
+    'backend/http-functions.js',
     'backend/member-orders.web.js',
     'backend/orderId-helpers.js',
     'backend/orderId.web.js',
+    'backend/sku-batch.web.js',
+    'backend/wecare-dashboard-api.js',
+    'backend/wecare-dashboard-core.js',
     'public/blog-search-url.js',
     'public/blog-search.js',
   ]);
