@@ -35,8 +35,9 @@ test('order-approved keeps custom Order ID authoritative and WhatsApp non-blocki
   assert.match(events, /\.catch\(\(\)\s*=>\s*undefined\)/);
 });
 
-test('payment, fulfillment, and refund Wix events are wired to WhatsApp activity mapping', () => {
-  assert.match(events, /wixEcom_onPaymentStatusUpdated/);
+test('payment, fulfillment, and refund Wix events are wired to the current Wix eCommerce webhook names', () => {
+  assert.match(events, /wixEcom_onOrderPaymentStatusUpdated/);
+  assert.doesNotMatch(events, /wixEcom_onPaymentStatusUpdated/);
   assert.match(events, /payment-updated/);
   assert.match(events, /wixEcom_onOrderFulfilled/);
   assert.match(events, /order-fulfilled/);
