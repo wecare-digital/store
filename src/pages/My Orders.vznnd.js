@@ -39,13 +39,6 @@ function bindOrdersToRepeater() {
   const repeaterData = mapOrdersToRepeaterData(allOrders);
 
   $w('#ordersRepeater').data = repeaterData;
-  $w('#ordersRepeater').onItemReady(($item, itemData) => {
-    $item('#slNoText').text = String(itemData.slNo);
-    $item('#shopIdText').text = itemData.orderId;
-    $item('#dateText').text = itemData.dateTime;
-    $item('#productText').text = itemData.products;
-    $item('#amountText').text = itemData.amount;
-  });
 
   $w('#ordersRepeater').show();
 }
@@ -61,7 +54,6 @@ async function loadPage(pageIndex) {
 
   try {
     const res = await getMemberOrdersPaged({
-      memberId: currentMemberId,
       page: pageIndex,
       pageSize: PAGE_SIZE
     });
@@ -102,6 +94,14 @@ async function loadPage(pageIndex) {
 }
 
 $w.onReady(async function () {
+  // Register before any assignment to .data, including the first page.
+  $w('#ordersRepeater').onItemReady(($item, itemData) => {
+    $item('#slNoText').text = String(itemData.slNo);
+    $item('#shopIdText').text = itemData.orderId;
+    $item('#dateText').text = itemData.dateTime;
+    $item('#productText').text = itemData.products;
+    $item('#amountText').text = itemData.amount;
+  });
   $w('#ordersContainer').expand();
   $w('#ordersRepeater').hide();
   $w('#loadMoreButton').hide();

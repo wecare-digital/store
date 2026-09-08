@@ -1,18 +1,6 @@
-// backend/sku-batch.web.js
-//
-// Batch SKU assignment for the Wix Stores catalog.
-//
-// Rewritten for Catalog V3. The previous version used wixData.query
-// ("Stores/Products" / "Stores/Variants") and wixStoresBackend
-// .updateVariantData / .updateProductFields — all V1 surfaces that read and
-// write nothing on this site. It reported success while doing nothing.
-//
-// Two V3 facts shape this file:
-//   1. There is no product-level SKU. Every product has at least one variant,
-//      and the SKU lives on the variant. Single-variant products are the
-//      normal case, so "the product SKU" means "its only variant's SKU".
-//   2. Array fields do not merge. Writing variants means resending the whole
-//      array plus `options`. setVariantSkus() in catalog-v3.js handles that.
+// Administrator-only SKU assignment and prefix updates for Catalog V3.
+// Collision checks cover the catalog snapshot and this run's pending values.
+// Run one batch at a time: Wix does not provide a cross-product SKU lock here.
 
 import { webMethod, Permissions } from 'wix-web-module';
 import { listProducts, normalizeProduct, setVariantSkus, getProductWithVariants } from 'backend/catalog-v3.js';
@@ -29,12 +17,16 @@ function makeRandomSku () {
   return sku;
 }
 
-function makeUniqueSku ( used ) {
+function makeUniqueSkus ( used, variants, overwrite, prefix ) {
   for ( let attempt = 0; attempt < 50; attempt++ ) {
-    const sku = makeRandomSku();
-    if ( !used.has( sku.toUpperCase() ) ) {
-      used.add( sku.toUpperCase() );
-      return sku;
+    const base = ( prefix ? prefix + '-' : '' ) + makeRandomSku();
+    const candidates = variants.map( ( variant, index ) => {
+      if ( ( variant.sku || '' ).trim() && !overwrite ) return null;
+      return variants.length === 1 ? base : base + '-' + String( index + 1 ).padStart( 2, '0' );
+    } );
+    if ( candidates.every( sku => sku === null || !used.has( sku.toUpperCase() ) ) ) {
+      candidates.filter( Boolean ).forEach( sku => used.add( sku.toUpperCase() ) );
+      return candidates;
     }
   }
   throw new Error( 'Failed to generate unique SKU after 50 attempts' );
@@ -66,6 +58,7 @@ async function collectExistingSkus ( products ) {
 export const assignSkusToAllProducts = webMethod(
   Permissions.Admin,
   async ( { overwrite = false, dryRun = true, prefix = 'WD' } = {} ) => {
+    dryRun = dryRun !== false;
     const raw = await listProducts();
     const products = raw.map( normalizeProduct );
     const usedSkus = await collectExistingSkus( products );
@@ -78,19 +71,17 @@ export const assignSkusToAllProducts = webMethod(
 
     for ( const p of products ) {
       try {
-        let base = makeUniqueSku( usedSkus );
-        if ( cleanPrefix ) {
-          base = cleanPrefix + '-' + base;
-          usedSkus.add( base.toUpperCase() );
-        }
-
-        const result = await setVariantSkus( p.id, ( variant, i ) => {
+        let candidates;
+        const result = await setVariantSkus( p.id, ( variant, i, variants ) => {
           const current = ( variant.sku || '' ).trim();
-          if ( current && !overwrite ) return null;          // leave it alone
-          if ( p.variantCount === 1 ) return base;
-          const numbered = base + '-' + String( i + 1 ).padStart( 2, '0' );
-          usedSkus.add( numbered.toUpperCase() );
-          return numbered;
+          if ( current && !overwrite ) return null;
+          if ( !candidates ) {
+            for ( const v of variants ) {
+              if ( ( v.sku || '' ).trim() ) usedSkus.add( v.sku.trim().toUpperCase() );
+            }
+            candidates = makeUniqueSkus( usedSkus, variants, overwrite, cleanPrefix );
+          }
+          return candidates[ i ];
         }, dryRun );
 
         if ( result.changed > 0 ) {
@@ -126,7 +117,9 @@ export const assignSkusToAllProducts = webMethod(
 export const reprefixSKUs = webMethod(
   Permissions.Admin,
   async ( { oldPrefix = '', newPrefix = 'WD', dryRun = true } = {} ) => {
+    dryRun = dryRun !== false;
     const products = ( await listProducts() ).map( normalizeProduct );
+    const usedSkus = await collectExistingSkus( products );
     const cleanOld = ( oldPrefix || '' ).trim().toUpperCase();
     const cleanNew = ( newPrefix || 'WD' ).trim().toUpperCase();
 
@@ -136,11 +129,16 @@ export const reprefixSKUs = webMethod(
 
     for ( const p of products ) {
       try {
-        const result = await setVariantSkus( p.id, ( variant ) => {
+        const result = await setVariantSkus( p.id, ( variant, index, variants ) => {
+          if ( index === 0 ) {
+            for ( const v of variants ) {
+              if ( ( v.sku || '' ).trim() ) usedSkus.add( v.sku.trim().toUpperCase() );
+            }
+          }
           const current = ( variant.sku || '' ).trim();
           if ( !current ) return null;
           const upper = current.toUpperCase();
-          if ( cleanOld && !upper.startsWith( cleanOld ) ) return null;
+          if ( cleanOld && upper !== cleanOld && !upper.startsWith( cleanOld + '-' ) ) return null;
 
           let base = current;
           if ( cleanOld && upper.startsWith( cleanOld ) ) {
@@ -148,7 +146,10 @@ export const reprefixSKUs = webMethod(
             if ( base.startsWith( '-' ) ) base = base.slice( 1 );
           }
           const next = cleanNew ? cleanNew + '-' + base : base;
-          return next.toUpperCase() === upper ? null : next;
+          if ( next.toUpperCase() === upper ) return null;
+          if ( usedSkus.has( next.toUpperCase() ) ) throw new Error( 'SKU collision: ' + next );
+          usedSkus.add( next.toUpperCase() );
+          return next;
         }, dryRun );
 
         if ( result.changed > 0 ) updated.push( { id: p.id, name: p.name, variants: result.variants } );
