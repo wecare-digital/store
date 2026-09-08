@@ -1,15 +1,12 @@
 import wixData from 'wix-data';
 import { getSecret } from 'wix-secrets-backend';
 import { listProducts, normalizeProduct, setVariantSkus, getProductWithVariants } from 'backend/catalog-v3.js';
+import { getWhatsAppOrderNotificationStatus } from 'backend/whatsapp-order-notifications.js';
 
 const SITE_ID = 'c17b0e20-d96d-4fa1-b05c-bc97c04b4ac5';
 const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SKU_LENGTH = 8;
 const READ_OPTIONS = { suppressAuth: true, suppressHooks: true, consistentRead: true };
-const WHATSAPP_ACCESS_TOKEN = 'WHATSAPP_ACCESS_TOKEN';
-const WHATSAPP_PHONE_NUMBER_ID = 'WHATSAPP_PHONE_NUMBER_ID';
-const WHATSAPP_WABA_ID = 'WHATSAPP_WABA_ID';
-const META_APP_ID = '2238810740192680';
 
 async function siteApi(method, path, body) {
   const key = await getSecret('api');
@@ -115,12 +112,6 @@ async function reprefixSkus({ oldPrefix = '', newPrefix = 'WD', dryRun = true } 
   return { dryRun, catalogVersion: 'V3', oldPrefix: oldP || null, newPrefix: newP || null, updated, skipped, errors };
 }
 
-async function whatsAppStatus() {
-  const names = [WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_WABA_ID];
-  const values = await Promise.all(names.map(async name => { try { return Boolean(await getSecret(name)); } catch { return false; } }));
-  return { connected: values.every(Boolean), accessToken: values[0], phoneNumberId: values[1], wabaId: values[2], metaAppId: META_APP_ID };
-}
-
 async function listOrders() {
   const data = await siteApi('POST', '/ecom/v1/orders/search', { search: { cursorPaging: { limit: 25 } } });
   return (data.orders || []).map(order => ({
@@ -201,7 +192,17 @@ async function automationsStatus() {
 
 export async function runWeCareAction(input = {}) {
   switch (input.action) {
-    case 'status': return { siteId: SITE_ID, catalogVersion: 'V3', whatsapp: await whatsAppStatus() };
+    case 'status': {
+      const whatsapp = await getWhatsAppOrderNotificationStatus();
+      return {
+        siteId: SITE_ID,
+        catalogVersion: 'V3',
+        whatsapp: {
+          ...whatsapp,
+          connected: whatsapp.enabled && whatsapp.credentialsConfigured && Object.values(whatsapp.templates || {}).every(Boolean),
+        },
+      };
+    }
     case 'orders': return { orders: await listOrders() };
     case 'orderIds': return { items: await listOrderIds() };
     case 'skuMissing': return assignMissingSkus({ prefix: input.prefix, dryRun: input.dryRun });
