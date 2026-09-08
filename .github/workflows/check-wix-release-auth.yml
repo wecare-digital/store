@@ -1,0 +1,34 @@
+name: Check Wix release auth
+
+on:
+  push:
+    branches:
+      - feat/wecare-private-app-completion
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Confirm Wix API key is configured
+        env:
+          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
+        run: |
+          if [ -z "$WIX_API_KEY" ]; then
+            echo "WIX_API_KEY repository secret is not configured."
+            exit 2
+          fi
+      - name: Install Wix CLI
+        run: npm install --global @wix/cli@latest
+      - name: Authenticate Wix CLI
+        env:
+          WIX_API_KEY: ${{ secrets.WIX_API_KEY }}
+        run: wix login --api-key "$WIX_API_KEY"
+      - name: Show Wix CLI version
+        run: wix --version
