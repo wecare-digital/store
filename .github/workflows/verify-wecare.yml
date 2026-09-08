@@ -22,4 +22,4 @@ jobs:
         with:
           node-version: '20'
       - name: Run repository tests
-        run: node --test tests/*.test.mjs
+        run: node --experimental-vm-modules --test tests/*.test.mjs
