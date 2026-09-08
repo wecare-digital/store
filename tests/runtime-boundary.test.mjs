@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
-import vm from 'node:vm';
 import test from 'node:test';
 
 const root = resolve(import.meta.dirname, '../src');
@@ -12,24 +11,29 @@ function files(dir) {
   });
 }
 
-test('custom modules expose only the approved order-ID, SKU and blog-search subsystems', () => {
+test('live custom modules expose only approved order-ID and Blog-search subsystems', () => {
   const actual = files(root).filter(path => path.endsWith('.js') && !path.includes('/pages/'))
     .map(path => relative(root, path)).sort();
   assert.deepEqual(actual, [
-    'backend/catalog-v3.js', 'backend/events.js', 'backend/member-orders.web.js',
-    'backend/orderId-helpers.js', 'backend/orderId.web.js', 'backend/sku-batch.web.js',
-    'public/blog-search-url.js', 'public/blog-search.js',
+    'backend/events.js',
+    'backend/member-orders.web.js',
+    'backend/orderId-helpers.js',
+    'backend/orderId.web.js',
+    'public/blog-search-url.js',
+    'public/blog-search.js',
   ]);
 });
 
-test('pages outside order-ID display and blog search execute no custom behavior', () => {
-  const keep = new Set(['masterPage.js', 'My Orders.vznnd.js', 'Thank You Page.f0at2.js', 'Blog.e4rsm.js', 'Post.q5tyt.js']);
-  for (const file of files(resolve(root, 'pages')).filter(path => path.endsWith('.js'))) {
-    if (keep.has(file.split('/').at(-1))) continue;
-    // A context with no Wix, browser, network or timer globals makes any retained
-    // page initialization/import fail. Empty page files keep native Wix content.
-    assert.doesNotThrow(() => vm.runInNewContext(readFileSync(file, 'utf8'), {}, { timeout: 100 }), relative(root, file));
-  }
+test('page code contains only the five functional customer/runtime files', () => {
+  const actual = files(resolve(root, 'pages')).filter(path => path.endsWith('.js'))
+    .map(path => relative(resolve(root, 'pages'), path)).sort();
+  assert.deepEqual(actual, [
+    'Blog.e4rsm.js',
+    'My Orders.vznnd.js',
+    'Post.q5tyt.js',
+    'Thank You Page.f0at2.js',
+    'masterPage.js',
+  ]);
 });
 
 test('every local import in the retained runtime resolves to an existing file', () => {
