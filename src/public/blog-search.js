@@ -3,7 +3,7 @@ import wixWindow from 'wix-window-frontend';
 import wixLocation from 'wix-location-frontend';
 import { resolveBlogPostUrl } from 'public/blog-search-url.js';
 
-const DEBOUNCE = 150;
+const DEBOUNCE = 50;
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 function linkHtml(label) { return '<p style="margin:0"><span style="font-family:Helvetica,Arial,sans-serif;font-size:16px;color:#000;text-decoration:underline;cursor:pointer">' + esc(label) + '</span></p>'; }
@@ -135,8 +135,10 @@ export function initBlogSearch(select) {
     }
     const requestVersion = ++version;
     const q = input.value.trim();
-    reset();
-    if (!q) return;
+    if (!q) {
+      reset();
+      return;
+    }
     timer = setTimeout(() => {
       timer = null;
       search(q, requestVersion, false);
