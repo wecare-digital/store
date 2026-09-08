@@ -25,6 +25,11 @@ function preferredElement(select, id, typeSelector, hint) {
   const hinted = candidates.find(item => hint.test(searchHint(item)));
   return hinted || (candidates.length === 1 ? candidates[0] : null);
 }
+function configureSearchBox(input) {
+  try { input.placeholder = 'Search posts…'; } catch (_) {}
+  try { input.show(); } catch (_) {}
+  try { input.expand(); } catch (_) {}
+}
 
 export function initBlogSearch(select) {
   const input = preferredElement(select, '#searchInput', 'TextInput,TextBox', /search/);
@@ -33,6 +38,8 @@ export function initBlogSearch(select) {
     console.error('[blog-search] Missing searchInput or resultsRepeater; check the page element IDs.');
     return;
   }
+
+  configureSearchBox(input);
 
   const box = optionalElement(select, '#resultsBox') || rep;
   const noText = preferredElement(select, '#noResultsText', 'Text', /no posts|search result|no result/);
