@@ -3,10 +3,18 @@ export const WECARE_OPS_SECTIONS = Object.freeze([
   { id: 'orders', label: 'Orders' },
   { id: 'order-ids', label: 'Order IDs' },
   { id: 'sku-manager', label: 'SKU Manager' },
+  { id: 'invoices', label: 'Invoices' },
+  { id: 'payment-links', label: 'Payment Links' },
+  { id: 'forms', label: 'Forms' },
+  { id: 'seo', label: 'SEO' },
+  { id: 'automations', label: 'Automations' },
+  { id: 'whatsapp', label: 'WhatsApp' },
   { id: 'system-tools', label: 'System Tools' },
 ]);
 
 export const WECARE_OPS_REGISTRATION = Object.freeze({
-  installed: false,
-  reason: 'Wix requires the private dashboard page to be registered in the Editor or through an authenticated Wix CLI app project before this source can run in the dashboard.',
+  installed: true,
+  appId: '6cbf8eaf-264d-495a-bde1-d63d016d58a9',
+  routePath: 'wecare',
+  title: 'WECARE',
 });
