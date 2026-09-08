@@ -8,17 +8,34 @@ const DEBOUNCE = 150;
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 function linkHtml(label) { return '<p style="margin:0"><span style="font-family:Helvetica,Arial,sans-serif;font-size:16px;color:#000;text-decoration:underline;cursor:pointer">' + esc(label) + '</span></p>'; }
 function optionalElement(select, id) { try { return select(id); } catch (_) { return null; } }
+function elementsByType(select, selector) {
+  try {
+    const found = select(selector);
+    return Array.isArray(found) ? found : (found ? [found] : []);
+  } catch (_) { return []; }
+}
+function searchHint(element) {
+  return [element?.id, element?.placeholder, element?.label, element?.text]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+function preferredElement(select, id, typeSelector, hint) {
+  const exact = optionalElement(select, id);
+  if (exact) return exact;
+  const candidates = elementsByType(select, typeSelector);
+  const hinted = candidates.find(item => hint.test(searchHint(item)));
+  return hinted || (candidates.length === 1 ? candidates[0] : null);
+}
 
 export function initBlogSearch(select) {
-  const input = optionalElement(select, '#searchInput');
-  const rep = optionalElement(select, '#resultsRepeater');
+  const input = preferredElement(select, '#searchInput', 'TextInput,TextBox', /search/);
+  const rep = preferredElement(select, '#resultsRepeater', 'Repeater', /search|result/);
   if (!input || typeof input.onInput !== 'function' || !rep || typeof rep.onItemReady !== 'function') {
     console.error('[blog-search] Missing searchInput or resultsRepeater; check the page element IDs.');
     return;
   }
 
   const box = optionalElement(select, '#resultsBox') || rep;
-  const noText = optionalElement(select, '#noResultsText');
+  const noText = preferredElement(select, '#noResultsText', 'Text', /no posts|search result|no result/);
   const isMobile = wixWindow.formFactor === 'Mobile';
   let timer = null, version = 0, resolvedQuery = '', results = [];
 
@@ -85,7 +102,7 @@ export function initBlogSearch(select) {
   }
 
   rep.onItemReady(($item, data) => {
-    const title = optionalElement($item, '#resultTitle');
+    const title = preferredElement($item, '#resultTitle', 'Text', /title|result/);
     const row = optionalElement($item, '#rowBox');
     if (!title) {
       console.error('[blog-search] Missing resultTitle inside resultsRepeater.');
