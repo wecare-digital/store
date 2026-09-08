@@ -1,0 +1,25 @@
+name: Verify WECARE
+
+on:
+  push:
+    branches:
+      - feat/wecare-private-app-completion
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run repository tests
+        run: node --experimental-vm-modules --test tests/*.test.mjs
