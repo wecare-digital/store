@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
-// Execute production modules; replace only the Wix/network boundaries.
+// Execute the WECARE Ops migration modules; replace only Wix/network boundaries.
 export function loadSkuModules({ products = [], pages, secret = 'test-key', random = () => 0, getProduct } = {}) {
   const requests = [];
   const registrations = [];
@@ -39,7 +39,7 @@ export function loadSkuModules({ products = [], pages, secret = 'test-key', rand
     },
   });
   function evaluate(file, names) {
-    const source = readFileSync(new URL('../src/backend/' + file, import.meta.url), 'utf8')
+    const source = readFileSync(new URL('../apps/wecare-ops/src/legacy/' + file, import.meta.url), 'utf8')
       .replace(/^import .*;\s*$/gm, '')
       .replace(/\bexport (async function|function|const)/g, '$1');
     return vm.runInContext(`(() => { ${source}\nreturn { ${names.join(',')} }; })()`, context, { filename: file });
