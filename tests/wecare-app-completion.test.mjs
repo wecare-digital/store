@@ -41,10 +41,19 @@ test('HTTP gateway validates the signed Wix instance through token-info before s
   assert.match(httpSource, /post_wecareApi/);
 });
 
-test('dashboard API exposes the approved live actions and keeps SKU writes dry-run-first', () => {
-  for (const action of ['status','orders','orderIds','skuMissing','skuReprefix','seoStatus','automations']) assert.match(apiSource, new RegExp(action));
+test('dashboard API exposes every live admin action and keeps SKU writes dry-run-first', () => {
+  for (const action of ['status','orders','orderIds','skuMissing','skuReprefix','invoices','paymentLinks','forms','seoStatus','automations']) {
+    assert.match(apiSource, new RegExp(`case ['\"]${action}['\"]`));
+  }
   assert.match(apiSource, /dryRun\s*=\s*dryRun\s*!==\s*false/);
   assert.match(apiSource, /WHATSAPP_ACCESS_TOKEN/);
   assert.match(apiSource, /WHATSAPP_PHONE_NUMBER_ID/);
   assert.match(apiSource, /WHATSAPP_WABA_ID/);
+});
+
+test('dashboard renders refreshable live data for invoices, payment links, and forms', () => {
+  for (const fn of ['loadInvoices','loadPaymentLinks','loadForms']) assert.match(coreSource, new RegExp(`function ${fn}\\(`));
+  assert.match(coreSource, /onclick="loadInvoices\(\)"/);
+  assert.match(coreSource, /onclick="loadPaymentLinks\(\)"/);
+  assert.match(coreSource, /onclick="loadForms\(\)"/);
 });
